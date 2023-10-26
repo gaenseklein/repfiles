@@ -6,10 +6,10 @@ adds an atom-like filemanager to micro which reflects git-changes
 
 ## why another filemanager?
 
-while there is a filemanager-plugin build for micro, repfiles differs in that it 
-only cares about the files you are currently working with - e.g. your git-repository. 
-similary to the "projects" in atom it aims to have a quick access to your files and 
-also reflecting git-status of files (and folders) visibly. 
+while there is a filemanager-plugin build for micro, repfiles differs in that it
+only cares about the files you are currently working with - e.g. your git-repository.
+similary to the "projects" in atom it aims to have a quick access to your files and
+also reflecting git-status of files (and folders) visibly.
 personaly i have installed both filemanagers but for daily work i prefer repfiles
 
 ## how to install
@@ -28,7 +28,7 @@ for now go to your micro plugin directory and git clone this repository. for exa
 - filter hidden files and folders
 - filter binary files
 
-![files/screenshot.png](screenshot)
+![](files/screenshot.png)
 
 for more help please look at the [help](help/repfiles.md) page or inside micro `> help repfiles`
 
