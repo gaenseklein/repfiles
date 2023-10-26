@@ -1,4 +1,4 @@
-# repfiles - a file manager for your repository 
+# repfiles - a filemanager for your repository 
 
 repfilemanager is a filemanager based on git-repositorys. 
 it will use the working directory (the directory micro was launched from) as root-directory.
