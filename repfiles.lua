@@ -165,6 +165,21 @@ local function mark_as_changed(filepath, isnew)
 	end
 end
 
+-- mark recursively downward 
+local function mark_as_changed_downwards(dir, isnew)
+	if dir == nil then 
+		micro.TermError('new error',171,'dir is nil!')
+		return
+	end
+	for k,file in pairs(dir.dirs) do
+		if isnew then file.isnew = true else file.changed = true end		
+		mark_as_changed_downwards(file, isnew)
+	end
+	for k,file in pairs(dir.files) do
+		if isnew then file.isnew = true else file.changed = true end		
+	end
+end
+
 
 -- use git diff to change colors and stuff
 function respect_git_diff()
@@ -188,10 +203,20 @@ function respect_git_diff()
 		local fname = string.sub(line, 4)
 		local begin = string.sub(line,1,3)
 		local isnew = (begin=="?? ")
+		local isdel = (begin==" D ")
 		--micro.TermError('>'..begin..'<', count, '>>'..fname..'<<')
-		parse_path(fname, isfile)
-		mark_as_changed(fname, isnew)
-		--if not isfile then mark_as_changed_downwards(fname, isnew) end
+		if isdel then 
+			--do we want to do something?
+			--should we "show" the deleted file as red for example?
+			--for now dont do anything
+		else
+			parse_path(fname, isfile)
+			if not isfile then 
+				local newentry = walk_to_file(fname)
+				mark_as_changed_downwards(newentry, isnew) 
+			end
+			mark_as_changed(fname, isnew)
+		end
 		startpos = endpos + 1
 		endpos = string.find(gitdiff, '\n', startpos)
 		count = count + 1
@@ -397,8 +422,8 @@ function print_folder(folder, depth)
 			if actdir.parent.name ~= "root" then space = space .. pre_link end
 			-- check if we have to put changed in front
 			local begin = " "
-			if actdir.changed then begin = pre_changed end
 			if actdir.isnew then begin = pre_new end
+			if actdir.changed then begin = pre_changed end
 			if actdir.ignored then begin = pre_ignored end
 			-- form a line for the directory entry
 			local line = begin .. space .. pre_dir .. pre .. foldername 
@@ -445,6 +470,7 @@ function open_tree_view()
 	local actview = micro.CurPane()
 	if target_pane == nil or actview ~= fileview then
 		target_pane = actview
+		--TODO: jump to file in filemanager
 	end
 	--local splitid = actview.Buf.tab
 	--micro.TermError('splitid',450,'splitid'..splitid)
@@ -550,6 +576,7 @@ function init()
 	--micro.TermError("inside_git",0,'>>'..test_git..'<<')
 	config.MakeCommand("repfiles", start, config.NoComplete)	
 	config.AddRuntimeFile("repfiles", config.RTSyntax, "syntax.yaml")
+	config.AddRuntimeFile("repfiles", config.RTHelp, "help/repfiles.md")
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
