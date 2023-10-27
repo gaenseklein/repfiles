@@ -11,6 +11,7 @@ local inside_git = false
 local show_ignored = true
 local show_hidden = true
 local show_binarys = true
+local show_filterblock = true
 local allfiles = {}
 -- prefix symbols: 
 -- status like symbols - if you change them you have to alter syntax.yaml too
@@ -236,6 +237,9 @@ end
 -- so not used till now
 function expand_upwards(dir)
 	local actdir = dir
+	if dir == nil then return end
+	if dir.isfile then actdir = dir.parent end
+	--micro.TermError("expand upwards", 239, actdir.fullpath)
 	while actdir.parent ~= nil do
 		actdir.expanded = true
 		actdir = actdir.parent
@@ -380,6 +384,53 @@ function mark_bin_or_text()
 	--micro.TermError('executed. result',#bins,bins)
 end
 
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- display
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- helper function to display booleans:
+function boolstring(bol)
+	if bol then return "true" else return "false" end
+end
+
+local status_lines = {}
+
+local function change_status_from_line(linenr)
+	local status = status_lines[linenr+2]
+	if status == nil then return false end
+	if status == "inside_git" then inside_git = not inside_git end
+	if status == "show_ignored" then show_ignored = not show_ignored end
+	if status == "show_hidden" then show_hidden = not show_hidden end
+	if status == "show_binarys" then show_binarys = not show_binarys end
+	if status == "show_filterblock" then show_filterblock = not show_filterblock end
+	display_tree()
+end
+
+-- builds a string to display at bottom of display, showing stats
+local function build_status_block(linenr)
+	local actnr = linenr
+	if actnr == nil then actnr = 1 end
+	status_lines = {}	
+	local res = "=============="
+	actnr = actnr + 1
+	res = res .."\nshow [g]it diff: " .. boolstring(inside_git)
+	status_lines[actnr] = "inside_git"
+	actnr = actnr + 1
+	res = res .."\nshow git[i]gnored: " .. boolstring(show_ignored)
+	status_lines[actnr] = "show_ignored"
+	actnr = actnr + 1
+	res = res .."\nshow [h]idden: " .. boolstring(show_hidden)
+	status_lines[actnr] = "show_hidden"
+	actnr = actnr + 1
+	res = res .."\nshow [b]inary files: ".. boolstring(show_binarys)		
+	status_lines[actnr] = "show_binarys"
+	actnr = actnr + 1
+	res = res .."\nshow [t]his block: ".. boolstring(show_filterblock)		
+	status_lines[actnr] = "show_filterblock"
+	actnr = actnr + 1
+	
+	return res
+end
+
 -- display the tree:
 
 local print_line_nr = 1 --line in which to print
@@ -395,6 +446,10 @@ function display_tree(cursorline)
 	if cursorline ~= nil then
 		-- Go to line
 		micro.CurPane():GotoCmd({cursorline})
+	end
+	if show_filterblock then 
+		local filterblock = build_status_block(print_line_nr + 2)
+		print_line(print_line_nr + 2, filterblock)
 	end
 end
 
@@ -442,7 +497,7 @@ function print_folder(folder, depth)
 	-- secondly we walk through the files
 	for k, filename in pairs(folder.sort_files) do		
 		if filename == nil  or #filename < 2 then
-			micro.TermError("filename is nil", 0, '>>' .. #filename .. '<<')
+			--micro.TermError("filename is nil", 0, '>>' .. #filename .. '<<')
 		end
 		local actfile = folder.files[filename]
 		--check if we have to print file - if its ignored/hidden and option is set we dont bother
@@ -480,7 +535,7 @@ function open_tree_view()
 	fileview = micro.CurPane()
 
 	-- Set the width of fileview to 30% & lock it
-    fileview:ResizePane(30)
+    fileview:ResizePane(30) -- does not lock, will be changed after vsplit! 
 	-- Set the type to unsavable
     -- fileview.Buf.Type = buffer.BTLog
     fileview.Buf.Type.Scratch = true
@@ -510,15 +565,72 @@ local function close_tree()
 	end
 end
 
--- toggle_tree will toggle the tree view visible (create) and hide (delete).
-function toggle_tree(open_again)
-	if fileview == nil then
-		open_tree_view()
-	else
-		close_tree()
-		if open_again then open_tree_view() end
+local function collect_all_dirs(dir)
+	local alldirs = {}
+	for k,v in pairs(dir.dirs) do
+		table.insert(alldirs, v)
+		if #v.dirs >= 1 then
+			local subdirs = collect_all_dirs(v)
+			for i=0,#subdirs do
+				table.insert(alldirs, subdirs[i])
+			end
+		end
 	end
+	return alldirs
 end
+
+local function refresh(p)
+	local path = p 
+	if p == nil then path = "" end
+	if fileview == nil then return nil end
+	-- get all expanded dirs:
+	local alldirs = collect_all_dirs(filetree)	
+	micro.TermError('alldirs '..#alldirs,534,'something')
+	filetree.dirs = {}
+	filetree.files = {}
+	build_tree('')
+	local target = nil
+	for i=1, #alldirs do 
+		--only for expanded?
+		if alldirs[i].expanded then 
+			build_tree(alldirs[i].fullpath)
+			target = walk_to_file(alldirs[i].fullpath)
+			--only debug
+			local debug = ""
+			for db=1,#filetree.dirs do 
+				debug = debug .. filetree.dirs[db].fullpath .. '\n'
+			end
+			micro.TermError("walktofile expanded folder",0,alldirs[i].fullpath .. '\n'..debug)
+			expand_upwards(target)			
+		end
+	end
+	display_tree()
+	if p == nil then 
+		micro.TermError('path is nil',547,'asdf')
+		return 
+	end
+	target = walk_to_file(path)	
+	local targetline = 1
+	for i=1, #filetree.entry_on_line do
+		if filetree.entry_on_line[i].fullpath == path then
+			targetline = i
+			break
+		end
+	end
+	
+	-- if target.isfile then target = target.parent end
+	fileview:GotoCmd({targetline..''})
+end
+
+-- -- toggle_tree will toggle the tree view visible (create) and hide (delete).
+-- function toggle_tree(open_again)
+	-- if fileview == nil then
+		-- open_tree_view()
+	-- else
+		-- close_tree()
+		-- if open_again then open_tree_view() end
+	-- end
+-- end
 
 -- open file 
 local function open_file(entry)
@@ -544,12 +656,16 @@ local function handle_click()
 	local msg = 'not found'
 	if act_entry ~= nil then msg = act_entry.fullpath end
 	if act_entry ~= nil and act_entry.hidden then msg = msg ..' hidden' end
-	if act_entry ~= nil and act_entry.file then msg = msg ..' file' else 
-	msg=msg..' dir'..#act_entry.dirs ..',' .. #act_entry.files .. '|'..act_entry.parent.fullpath
+	if act_entry ~= nil and act_entry.file then msg = msg ..' file' end
+	if act_entry ~= nil and not act_entry.file then
+		msg=msg..' dir'..#act_entry.dirs ..',' .. #act_entry.files .. '|'..act_entry.parent.fullpath
 	end
 	if act_entry ~= nil and act_entry.expanded then msg = msg ..' expanded' end
 	micro.InfoBar():Message('act entry ', msg, ' line', y)
-	if act_entry == nil then return nil end
+	if act_entry == nil then 
+		change_status_from_line(y)
+		return nil 
+	end
 	if act_entry.file then 
 		open_file(act_entry)
 	else
@@ -565,9 +681,18 @@ local function handle_click()
 end
 
 function start(bp, args)
-	toggle_tree(true)
-	build_tree('')
-	display_tree()	
+	-- toggle_tree(true)
+	if fileview == nil then 
+		open_tree_view()
+		build_tree('')
+		display_tree()	
+	else 
+		--fileview:SetActive(false)
+		switch_to_view(fileview)
+	end
+	if bp ~= fileview then 
+		target_pane = bp
+	end
 end
 
 function init()
@@ -599,7 +724,17 @@ local function close_tree()
 end
 
 
-
+function switch_to_view(view)
+	if view == nil then return end
+	local actview = micro.CurPane()
+	local count = 0
+	while view ~= micro.CurPane() and count < 10 do 
+		micro.CurPane():NextSplit()
+		count = count + 1
+		if count > 1 and actview == micro.CurPane() then break end
+	end
+	return actview == micro.CurPane()
+end
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- All the events for certain Micro keys go below here
 -- Other than things we flat-out fail
@@ -620,6 +755,13 @@ function preQuitAll(view)
 	close_tree()
 end
 
+function promptev(output) 
+	micro.TermError('infobar',0,'>>'..output..'<<')			
+end 
+
+function donecb(result, canceled) 
+	micro.TermError('infobarend',0,'>>'..result..'<<')			
+end
 
 -- handle normal keystrokes on fileview pane:
 function preRune(view, r)
@@ -640,6 +782,24 @@ function preRune(view, r)
 	end
 	if r=='g' then
 		inside_git = not inside_git
+		display_tree()
+	end
+	if r=='t' then
+		show_filterblock = not show_filterblock
+		display_tree()
+	end
+
+	if r=='o' then 
+		micro.InfoBar():Prompt("open ", "test", "opentest", promptev, donecb)
+	end
+	if r=='r' then
+		local y = fileview.Cursor.Loc.Y + 1
+		local act_entry = filetree.entry_on_line[y]	
+		if act_entry ~= nil then 
+			refresh(act_entry.fullpath)
+		else 
+			refresh()
+		end
 	end
 
 	return false
