@@ -1,0 +1,17 @@
+[
+	{
+		"Name": "repfiles",
+		"Description": "a filemanager for your git-repository",
+		"Tags": ["filemanager", "filetree", "git", "repository", "file", "manager"],
+        "Website": "https://github.com/gaenseklein/repfiles",
+		"Versions": [
+			{
+				"Version": "1.0.0",
+				"Url": "https://github.com/gaenseklein/repfiles/archive/v1.0.0.zip",
+				"Require": {
+					"micro": ">=2.0.8"
+				}
+			}
+		]
+	}
+]
