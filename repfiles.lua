@@ -703,7 +703,7 @@ function move_sidewards_in_tree(left)
 			return false
 		end
 		local i = y-1
-		while i>1 and not filetree.entry_on_line[i].file do 
+		while i>1 and (filetree.entry_on_line[i].file or filetree.entry_on_line[i].expanded == false) do 
 			i = i - 1
 		end
 		display_tree(""..i)
