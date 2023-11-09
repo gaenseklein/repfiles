@@ -415,9 +415,11 @@ local function build_status_block(linenr)
 	res = res .."\nshow [g]it diff: " .. boolstring(inside_git)
 	status_lines[actnr] = "inside_git"
 	actnr = actnr + 1
-	res = res .."\nshow git[i]gnored: " .. boolstring(show_ignored)
-	status_lines[actnr] = "show_ignored"
-	actnr = actnr + 1
+	if inside_git then 
+		res = res .."\nshow git[i]gnored: " .. boolstring(show_ignored)
+		status_lines[actnr] = "show_ignored"
+		actnr = actnr + 1
+	end
 	res = res .."\nshow [h]idden: " .. boolstring(show_hidden)
 	status_lines[actnr] = "show_hidden"
 	actnr = actnr + 1
@@ -442,15 +444,18 @@ function display_tree(cursorline)
 	filetree.entry_on_line = {}
 	fileview.Buf.EventHandler:Remove(fileview.Buf:Start(), fileview.Buf:End())
 	
-	print_folder(filetree, 0)
+	local gotoline = print_folder(filetree, 0)
+	if show_filterblock then 
+			local filterblock = build_status_block(print_line_nr + 2)
+			print_line(print_line_nr + 2, filterblock)
+		end
 	if cursorline ~= nil then
 		-- Go to line
-		micro.CurPane():GotoCmd({cursorline})
+		micro.CurPane():GotoCmd({cursorline})		
+	else 
+		micro.CurPane():GotoCmd({gotoline .. ''})				
 	end
-	if show_filterblock then 
-		local filterblock = build_status_block(print_line_nr + 2)
-		print_line(print_line_nr + 2, filterblock)
-	end
+	
 end
 
 -- print the line into fileview-buffer
@@ -494,6 +499,8 @@ function print_folder(folder, depth)
 			end
 		end
 	end
+	-- if we are in root then save print_line_nr to goto afterwards 
+	local goto_line = print_line_nr
 	-- secondly we walk through the files
 	for k, filename in pairs(folder.sort_files) do		
 		if filename == nil  or #filename < 2 then
@@ -519,6 +526,7 @@ function print_folder(folder, depth)
 			print_line_nr = print_line_nr + 1
 		end
 	end
+	return goto_line
 end
 
 function open_tree_view()
@@ -680,6 +688,38 @@ local function handle_click()
 	end	
 end
 
+function move_sidewards_in_tree(left)
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry = filetree.entry_on_line[y]
+	if act_entry == nil then return false end
+	if left then 
+		if act_entry.expanded then
+			act_entry.expanded = false
+			display_tree(""..y)
+			return true
+		end
+		--look for next parent
+		if act_entry.parent == nil then 
+			return false
+		end
+		local i = y-1
+		while i>1 and not filetree.entry_on_line[i].file do 
+			i = i - 1
+		end
+		display_tree(""..i)
+		return true
+	else 
+		if act_entry.dirs ~= nil and not act_entry.expanded then
+			act_entry.expanded = true 
+			build_tree(act_entry.fullpath)
+			display_tree(""..y)
+			return true
+		end
+		y = y + 1
+		display_tree(""..y)
+	end
+end
+
 function start(bp, args)
 	-- toggle_tree(true)
 	if fileview == nil then 
@@ -818,4 +858,20 @@ function onEscape(view)
 	if view == fileview then 
 		close_tree()
 	end
+end
+
+function preCursorLeft(view)
+	if view == fileview then 
+		move_sidewards_in_tree(true)
+		return false
+	end
+	return true
+end
+
+function preCursorRight(view)
+	if view == fileview then 
+		move_sidewards_in_tree(false)
+		return false
+	end
+	return true
 end
