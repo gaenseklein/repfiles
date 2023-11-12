@@ -297,8 +297,8 @@ function add_files_to_tree(path)
 	local startpos = 1
 	local endpos = string.find(all_files,'\n',startpos)
 	local counter = 0
-	while endpos ~= nil and counter < 20 do 
-		local fpath = string.sub(all_files, startpos+2, endpos-1)
+	while endpos ~= nil and counter < 200 do 
+		local fpath = string.sub(all_files, startpos+2, endpos-1)		
 		--micro.TermError(fpath, counter, 'what is going on?' .. startpos ..':'..endpos)
 		parse_path(fpath, true)
 		startpos = endpos + 1
@@ -315,7 +315,7 @@ function add_directorys_to_tree(path)
 	local startpos = 1 --string.find(all_dirs, '\n./')
 	local endpos = string.find(all_dirs, '\n', startpos)
 	local counter = 0
-	while endpos ~= nil and counter < 10 do
+	while endpos ~= nil and counter < 100 do
 		local dpath = string.sub(all_dirs, startpos+2, endpos-1)
 		--micro.TermError(dpath, counter, 'what is going on?' .. startpos ..':'..endpos .. ' length '.. #dpath)
 		if dpath ~= nil and #dpath > 0 then 
@@ -466,6 +466,9 @@ end
 
 -- print the directory:
 function print_folder(folder, depth)
+	--debug:
+	-- consoleLog(folder, "folder")
+	-- consoleLog(folder.files, "folder.files:")
 	-- first we walk through the subdirectorys:
 	for k,foldername in pairs(folder.sort_dirs) do
 		local actdir = folder.dirs[foldername]
@@ -774,6 +777,29 @@ function switch_to_view(view)
 		if count > 1 and actview == micro.CurPane() then break end
 	end
 	return actview == micro.CurPane()
+end
+
+function dump(o, depth)
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         if depth > 0 then s = s .. '['..k..'] = ' .. dump(v, depth - 1) .. ',\n'
+         else s = s .. '['..k..'] = ' .. '[table]'  .. ',\n'end
+      end
+      return s .. '} \n'
+   else
+      return tostring(o)
+   end
+end
+
+function consoleLog(o, pre, depth)
+	local d = depth
+	if depth == nil then d = 1 end
+	local text = dump(o, d)
+	local begin = pre
+	if pre == nil then begin = "" end	
+	micro.TermError(begin, d, text)
 end
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- All the events for certain Micro keys go below here
