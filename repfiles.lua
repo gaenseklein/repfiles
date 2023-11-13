@@ -600,7 +600,7 @@ local function refresh(p)
 	if fileview == nil then return nil end
 	-- get all expanded dirs:
 	local alldirs = collect_all_dirs(filetree)	
-	micro.TermError('alldirs '..#alldirs,534,'something')
+	-- micro.TermError('alldirs '..#alldirs,534,'something')
 	filetree.dirs = {}
 	filetree.files = {}
 	build_tree('')
@@ -615,13 +615,13 @@ local function refresh(p)
 			for db=1,#filetree.dirs do 
 				debug = debug .. filetree.dirs[db].fullpath .. '\n'
 			end
-			micro.TermError("walktofile expanded folder",0,alldirs[i].fullpath .. '\n'..debug)
+			-- micro.TermError("walktofile expanded folder",0,alldirs[i].fullpath .. '\n'..debug)
 			expand_upwards(target)			
 		end
 	end
 	display_tree()
 	if p == nil then 
-		micro.TermError('path is nil',547,'asdf')
+		-- micro.TermError('path is nil',547,'asdf')
 		return 
 	end
 	target = walk_to_file(path)	
@@ -670,6 +670,93 @@ local function open_file(entry, newview)
 	end
 	
 end
+
+local function mkdir(path)
+	if path == nil then return false end
+	local cmd = "mkdir ".. path
+	micro.InfoBar():Message(cmd)
+	local result = shell.RunCommand(cmd)
+	
+	if result == nil or #result <2 then 
+		result = "created dir "..path
+		micro.InfoBar():Message(result)
+		refresh()
+		-- close_tree()
+		-- start()
+		-- add_directorys_to_tree(path)
+		-- display_tree("1")
+		
+		return true
+	end
+	micro.InfoBar():Error(result)
+	return false
+end
+
+function ask_mkdir_callback(result, canceled)
+	if canceled then return end
+	mkdir(result)	
+	-- consoleLog({result, canceled},'ask_mkdir_callback',2)
+	-- consoleLog(canceled)
+end
+
+function ask_mkdir()
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry =filetree.entry_on_line[y]
+	local prepath = ""
+	if act_entry == nil then prepath = "" else 
+		if act_entry.file and act_entry.parent then 
+			prepath = act_entry.parent.fullpath
+		else
+			prepath = act_entry.fullpath
+		end
+	end
+	micro.InfoBar():Prompt("make dir >",prepath,"repfilemkdir",nil, ask_mkdir_callback)
+end
+
+function add_new_file(path)
+	if path == nil then return false end
+	open_file({fullpath=path})
+	target_pane:Save()
+	-- if auto_close_after_open then
+		-- close_tree()
+	-- else
+		refresh()
+	-- end
+	-- local cmd = "echo '' > ".. path
+	-- micro.InfoBar():Message(cmd)
+	-- local result = shell.RunCommand(cmd)
+	-- if result == nil or #result < 2 then
+		-- result = "created file "..path
+		-- micro.InfoBar():Message(result)
+		-- return true
+	-- end
+	-- micro.InfoBar():Error(result)
+	-- return false
+	
+end
+
+local function add_new_file_callback(result, canceled)
+	if canceled then return end
+	local file_added = add_new_file(result)
+	if file_added and config.GetGlobalOption("repfiles.open_new_file_after_creation") then
+		open_file(result)
+	end
+end
+
+function ask_add_new_file()
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry =filetree.entry_on_line[y]
+	local prepath = ""
+	if act_entry == nil then prepath = "" else 
+		if act_entry.file and act_entry.parent then 
+			prepath = act_entry.parent.fullpath
+		else
+			prepath = act_entry.fullpath
+		end
+	end
+	micro.InfoBar():Prompt("create new file >",prepath,"repfilemkdir",nil, add_new_file_callback)
+end
+
 
 local function handle_click(newview)
 	local y = fileview.Cursor.Loc.Y + 1
@@ -760,6 +847,7 @@ function init()
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
+	config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
 	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
 	show_hidden = config.GetGlobalOption("repfiles.show_hidden")
@@ -872,10 +960,17 @@ function preRune(view, r)
 		show_filterblock = not show_filterblock
 		display_tree()
 	end
-
+	-- just for testing purpose:
 	if r=='o' then 
 		micro.InfoBar():Prompt("open ", "test", "opentest", promptev, donecb)
 	end
+	if r=='A' then
+		ask_mkdir()
+	end
+	if r=='a' then
+			ask_add_new_file()
+		end
+	-- not working: refresh is broken
 	if r=='r' then
 		local y = fileview.Cursor.Loc.Y + 1
 		local act_entry = filetree.entry_on_line[y]	
