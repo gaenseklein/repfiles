@@ -4,6 +4,7 @@ local micro = import("micro")
 local config = import("micro/config")
 local shell = import("micro/shell")
 local buffer = import("micro/buffer")
+local eventhandler = import("micro/event")
 
 -- internal vars we need
 local inside_git = false
@@ -12,6 +13,9 @@ local show_ignored = true
 local show_hidden = true
 local show_binarys = true
 local show_filterblock = true
+
+local auto_close_after_open = true
+
 local allfiles = {}
 -- prefix symbols: 
 -- status like symbols - if you change them you have to alter syntax.yaml too
@@ -644,7 +648,7 @@ end
 -- end
 
 -- open file 
-local function open_file(entry)
+local function open_file(entry, newview)
 	if entry == nil or entry.fullpath == nil then 
 		return nil 
 	end
@@ -656,12 +660,18 @@ local function open_file(entry)
 	if target_pane == nil then 
 		target_pane = micro.CurPane():VSplitIndex(target_buff, true)	
 	else 
-		target_pane:OpenBuffer(target_buff)
-		micro.CurPane():NextSplit()
+		if newview then 
+			target_pane:VSplitIndex(target_buff,true)
+			target_pane = micro.CurPane()
+		else 
+			target_pane:OpenBuffer(target_buff)
+			micro.CurPane():NextSplit()
+		end
 	end
+	
 end
 
-local function handle_click()
+local function handle_click(newview)
 	local y = fileview.Cursor.Loc.Y + 1
 	local act_entry = filetree.entry_on_line[y]
 	local msg = 'not found'
@@ -678,7 +688,8 @@ local function handle_click()
 		return nil 
 	end
 	if act_entry.file then 
-		open_file(act_entry)
+		open_file(act_entry, newview)
+		if auto_close_after_open then close_tree()  end
 	else
 		-- read and update tree if not filled yet 		
 		act_entry.expanded = not act_entry.expanded
@@ -690,6 +701,7 @@ local function handle_click()
 		display_tree(""..y)
 	end	
 end
+
 
 function move_sidewards_in_tree(left)
 	local y = fileview.Cursor.Loc.Y + 1
@@ -747,9 +759,12 @@ function init()
 	config.AddRuntimeFile("repfiles", config.RTHelp, "help/repfiles.md")
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
+	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
-	show_hidden = config.GetGlobalOption("repfiles.show_ignored")
+	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
+	show_hidden = config.GetGlobalOption("repfiles.show_hidden")
 	config.TryBindKey("Ctrl-r", "lua:repfiles.start", false)
+	-- config.TryBindKey("MouseLeft", "lua:repfiles.mouseclick", false)
 end
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -780,6 +795,7 @@ function switch_to_view(view)
 end
 
 function dump(o, depth)
+	if o == nil then return "nil" end
    if type(o) == 'table' then
       local s = '{ '
       for k,v in pairs(o) do
@@ -788,6 +804,8 @@ function dump(o, depth)
          else s = s .. '['..k..'] = ' .. '[table]'  .. ',\n'end
       end
       return s .. '} \n'
+   elseif type(o) == "boolean" then
+   	  return boolstring(o)   
    else
       return tostring(o)
    end
@@ -880,6 +898,16 @@ function preInsertNewline(view)
     return true
 end
 
+-- handle tab on search result
+function preInsertTab(view)
+	if view == fileview then
+		handle_click(true)
+		return false
+	end
+	return true
+end
+
+
 function onEscape(view)
 	if view == fileview then 
 		close_tree()
@@ -901,3 +929,43 @@ function preCursorRight(view)
 	end
 	return true
 end
+
+-- On click, checks for "double-click" else it does nothing
+-- does not do anything! 
+function preMousePress(view, event)
+	consoleLog(event,'mouseclick_event')
+	if view == fileview then
+		local x, y = event:Position()
+		--check if y is equal to current line:
+		local cur_y = fileview.Cursor.Loc.Y + 1
+		
+		-- consoleLog({x=x,y=y,cur_y=cury},"mouse press on x,y, current_line:")
+		-- Don't actually allow the mousepress to trigger, so we avoid highlighting stuff
+		-- return false
+	end
+	return true
+end
+-- we can intercept the mouse-event but that blocks mouse support completely
+-- function mouseclick(event, a)
+	-- consoleLog(event, "mouseclick via trybindkey "..type(event)) -- pointer to memory - what event is it???
+	-- local meta = getmetatable(event)
+	-- consoleLog(meta,"meta",2)
+	-- consoleLog(event:Position(),"eventMouse?")
+	-- consoleLog({eventhandler})
+	-- if eventhandler == nil then consoleLog({"nil"})
+	-- else consoleLog({"not nil",type(eventhandler)})	end
+	-- debuggtests()
+	-- local ev = micro.Event:ConstructEvent(event)
+	-- consoleLog(ev,'event?')
+	-- return false
+-- end
+-- 
+-- just some debugging tests, 
+-- function debuggtests()
+	-- local t = type(eventhandler)
+	-- consoleLog(t)
+	-- for k,v in ipairs(eventhandler) do
+		-- t = t .. k .. '->' .. '\n'
+	-- end
+	-- consoleLog(t)
+-- end
