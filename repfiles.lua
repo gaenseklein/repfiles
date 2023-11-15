@@ -650,22 +650,32 @@ end
 -- open file 
 local function open_file(entry, newview)
 	if entry == nil or entry.fullpath == nil then 
-		return nil 
+		return false
 	end
 	if allfiles[entry.fullpath] ~= nil and allfiles[entry.fullpath].binary then 
 		micro.InfoBar():Error('cannot open binary file ', entry.fullpath)
-		return nil
+		return false
 	end
-	target_buff = buffer.NewBufferFromFile(entry.fullpath)
+	local target_buff = buffer.NewBufferFromFile(entry.fullpath)
 	if target_pane == nil then 
 		target_pane = micro.CurPane():VSplitIndex(target_buff, true)	
 	else 
+		if target_pane.Buf:Modified() then 
+			micro.InfoBar():Error('Buffer is not saved! opened in new pane')
+			local old_pane = target_pane
+			target_pane:VSplitIndex(target_buff,true)
+			target_pane = micro.CurPane()
+			-- old_pane:Close() -- does not work :/
+			return true
+		end
 		if newview then 
 			target_pane:VSplitIndex(target_buff,true)
 			target_pane = micro.CurPane()
+			return true
 		else 
 			target_pane:OpenBuffer(target_buff)
 			micro.CurPane():NextSplit()
+			return true
 		end
 	end
 	
@@ -713,15 +723,89 @@ function ask_mkdir()
 	micro.InfoBar():Prompt("make dir >",prepath,"repfilemkdir",nil, ask_mkdir_callback)
 end
 
+
+function duplicate_file(path)
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry =filetree.entry_on_line[y]
+	if act_entry == nil or act_entry.fullpath == nil then return false end
+	--check if path already exists so we dont overwrite anything
+	local check = shell.RunCommand("find "..path)
+	check = string.sub(check, 1, -2)
+	-- consoleLog({check=check,path=path, equal = (check==path)},'check-string:'..path,2)
+	if check == path then 
+		micro.InfoBar():Error('file already exists ',path)
+		return false
+	end
+	local cmd = "cp " .. act_entry.fullpath .." ".. path --.." && echo true"
+	-- consoleLog(cmd,'command:')
+	local resp = shell.RunCommand(cmd)
+	
+	if #resp > 1 then 
+		micro.InfoBar():Error('could not copy file ',path,resp)
+		return false
+	end
+	-- consoleLog({resp=resp, t=type(resp), l=#resp},'resp:')
+	open_file({fullpath=path})
+	if auto_close_after_open then
+			close_tree()
+	else
+		refresh()
+	end
+	return true
+end
+
+function ask_duplicate_file_callback(result, canceled)
+	if canceled then return end
+	duplicate_file(result)	
+end
+
+function ask_duplicate_file()
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry =filetree.entry_on_line[y]
+	local prepath = ""
+	if act_entry == nil or not act_entry.file then
+		return false
+	end
+	prepath = act_entry.fullpath
+	micro.InfoBar():Prompt("duplicate "..prepath.." to >",prepath,"repfilemkdir",nil, ask_duplicate_file_callback)
+end
+
+function move_file(path)
+	local y = fileview.Cursor.Loc.Y + 1
+	local act_entry =filetree.entry_on_line[y]
+	if act_entry == nil or act_entry.fullpath == nil then return false end
+	--check if path already exists so we dont overwrite anything
+	local check = shell.RunCommand("find "..path)
+	check = string.sub(check, 1, -2)
+	-- consoleLog({check=check,path=path, equal = (check==path)},'check-string:'..path,2)
+	if check == path then 
+		micro.InfoBar():Error('file already exists ',path)
+		return false
+	end
+	-- we put mv -n to not overwrite in case something went wrong
+	local cmd = "mv -n" .. act_entry.fullpath .." ".. path --.." && echo true"
+	-- consoleLog(cmd,'command:')
+	local resp = shell.RunCommand(cmd)
+	
+	if #resp > 1 then 
+		micro.InfoBar():Error('could not move file ',path,resp)
+		return false
+	end
+	-- consoleLog({resp=resp, t=type(resp), l=#resp},'resp:')
+	
+	refresh()	
+	return true
+end
+
 function add_new_file(path)
 	if path == nil then return false end
 	open_file({fullpath=path})
 	target_pane:Save()
-	-- if auto_close_after_open then
-		-- close_tree()
-	-- else
+	if auto_close_after_open then
+		close_tree()
+	else
 		refresh()
-	-- end
+	end
 	-- local cmd = "echo '' > ".. path
 	-- micro.InfoBar():Message(cmd)
 	-- local result = shell.RunCommand(cmd)
@@ -734,6 +818,7 @@ function add_new_file(path)
 	-- return false
 	
 end
+
 
 local function add_new_file_callback(result, canceled)
 	if canceled then return end
@@ -775,8 +860,8 @@ local function handle_click(newview)
 		return nil 
 	end
 	if act_entry.file then 
-		open_file(act_entry, newview)
-		if auto_close_after_open then close_tree()  end
+		local file_opened = open_file(act_entry, newview)
+		if auto_close_after_open and file_opened then close_tree()  end
 	else
 		-- read and update tree if not filled yet 		
 		act_entry.expanded = not act_entry.expanded
@@ -847,7 +932,7 @@ function init()
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
-	config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
+	-- config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
 	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
 	show_hidden = config.GetGlobalOption("repfiles.show_hidden")
@@ -968,8 +1053,11 @@ function preRune(view, r)
 		ask_mkdir()
 	end
 	if r=='a' then
-			ask_add_new_file()
-		end
+		ask_add_new_file()
+	end
+	if r=='d' then
+		ask_duplicate_file()
+	end
 	-- not working: refresh is broken
 	if r=='r' then
 		local y = fileview.Cursor.Loc.Y + 1
@@ -1027,7 +1115,7 @@ end
 
 -- On click, checks for "double-click" else it does nothing
 -- does not do anything! 
-function preMousePress(view, event)
+function onMouseLeft(view, event)
 	consoleLog(event,'mouseclick_event')
 	if view == fileview then
 		local x, y = event:Position()
