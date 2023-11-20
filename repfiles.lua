@@ -1115,19 +1115,19 @@ end
 
 -- On click, checks for "double-click" else it does nothing
 -- does not do anything! 
-function onMouseLeft(view, event)
-	consoleLog(event,'mouseclick_event')
-	if view == fileview then
-		local x, y = event:Position()
-		--check if y is equal to current line:
-		local cur_y = fileview.Cursor.Loc.Y + 1
-		
-		-- consoleLog({x=x,y=y,cur_y=cury},"mouse press on x,y, current_line:")
-		-- Don't actually allow the mousepress to trigger, so we avoid highlighting stuff
-		-- return false
-	end
-	return true
-end
+-- function onMouseLeftRelease(view, event)
+-- 	consoleLog(event,'mouseclick_event')
+-- 	if view == fileview then
+-- 		local x, y = event:Position()
+-- 		--check if y is equal to current line:
+-- 		local cur_y = fileview.Cursor.Loc.Y + 1
+-- 		
+-- 		-- consoleLog({x=x,y=y,cur_y=cury},"mouse press on x,y, current_line:")
+-- 		-- Don't actually allow the mousepress to trigger, so we avoid highlighting stuff
+-- 		-- return false
+-- 	end
+-- 	return true
+-- end
 -- we can intercept the mouse-event but that blocks mouse support completely
 -- function mouseclick(event, a)
 	-- consoleLog(event, "mouseclick via trybindkey "..type(event)) -- pointer to memory - what event is it???
