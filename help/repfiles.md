@@ -15,6 +15,7 @@ see `help keybindings` for more info about keybindings
 
 - use `enter` to open file or expand/minimize directory
 - use `tab` to open file in a separate view
+- use arrow-keys to navigate inside filetree (left: go up dir/minimize dir, right: expand dir)
 
 ## filter
 
@@ -28,6 +29,8 @@ you can filter the output. press keys while cursor inside filemanager:
 
 some other actions you can do while inside filemanager:
 - [t]: show filters
+- [a]: add new file
+- [A]: add new directory
 
 ## options
 
