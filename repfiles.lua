@@ -884,7 +884,9 @@ local function handle_click(newview)
 	end	
 end
 
-
+-- add functionality to move inside filetree with left-right
+-- left goes to parent-directory or minimize current expanded directory
+-- right expands current directory or just moves to next entry (like arrow-down)
 function move_sidewards_in_tree(left)
 	local y = fileview.Cursor.Loc.Y + 1
 	local act_entry = filetree.entry_on_line[y]
@@ -905,7 +907,7 @@ function move_sidewards_in_tree(left)
 		end
 		display_tree(""..i)
 		return true
-	else 
+	else --arrow-right:
 		if act_entry.dirs ~= nil and not act_entry.expanded then
 			act_entry.expanded = true 
 			build_tree(act_entry.fullpath)
@@ -917,6 +919,7 @@ function move_sidewards_in_tree(left)
 	end
 end
 
+-- the function called from micro-command-line or via keybinding
 function start(bp, args)
 	-- toggle_tree(true)
 	if fileview == nil then 
@@ -966,7 +969,9 @@ local function close_tree()
 	end
 end
 
-
+-- as i did not find a function to switch to a target view i wrote this little helper
+-- using NextSplit() to switch till we found target view
+-- expects target view, returns boolean true if view found, false or nil if not found
 function switch_to_view(view)
 	if view == nil then return end
 	local actview = micro.CurPane()
@@ -974,11 +979,12 @@ function switch_to_view(view)
 	while view ~= micro.CurPane() and count < 10 do 
 		micro.CurPane():NextSplit()
 		count = count + 1
-		if count > 1 and actview == micro.CurPane() then break end
+		if count > 1 and actview == micro.CurPane() then break end -- we have circled the loop without finding the target view 
 	end
 	return actview == micro.CurPane()
 end
 
+--debug function to transform table/object into a string
 function dump(o, depth)
 	if o == nil then return "nil" end
    if type(o) == 'table' then
@@ -995,7 +1001,11 @@ function dump(o, depth)
       return tostring(o)
    end
 end
-
+-- debug function to get a javascript-like console.log to inspect tables
+-- expects: o: object like a table you want to debug
+-- pre: text to put in front 
+-- depth: depth to print the table/tree, defaults to 1
+-- without depth  we are always in risk of a stack-overflow in circle-tables
 function consoleLog(o, pre, depth)
 	local d = depth
 	if depth == nil then d = 1 end
@@ -1023,11 +1033,11 @@ end
 function preQuitAll(view)
 	close_tree()
 end
-
+-- some test-functions
 function promptev(output) 
 	micro.TermError('infobar',0,'>>'..output..'<<')			
 end 
-
+-- some test-functions
 function donecb(result, canceled) 
 	micro.TermError('infobarend',0,'>>'..result..'<<')			
 end
@@ -1125,9 +1135,15 @@ function preCursorRight(view)
 	return true
 end
 
+-- dont know how to access F2-Key, which is the standard key for 
+-- renaming files - does not work like this:
+-- function preF2(view)
+-- 	consoleLog('hi')
+-- end
+
 -- On click, checks for "double-click" else it does nothing
--- does not do anything! 
--- function onMouseLeftRelease(view, event)
+-- does not do anything! although it should...
+-- function preMousePress(view, event)
 -- 	consoleLog(event,'mouseclick_event')
 -- 	if view == fileview then
 -- 		local x, y = event:Position()
