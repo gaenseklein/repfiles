@@ -20,14 +20,15 @@ local allfiles = {}
 -- prefix symbols: 
 -- status like symbols - if you change them you have to alter syntax.yaml too
 local pre_changed = "★" --"🕫"
-local pre_dir = "🗀"
+local pre_dir = "🗀 "  --some alternative icons: 📁🖿
+local pre_dir_opened = "🗁 " --some alternative icons: 📂	
 local pre_new = "☆"
 local pre_ignored = "⌂"
 -- just for the beauty of it
 local pre_file = " "
 local pre_link = "⤷" -- link from "parent folder" to visualise relationship
---local pre_text = "🗏" -- future: to distinguish between binary and text files
---local pre_bin = "" -- 
+local pre_text = "🗎" --  distinguish between binary and text files- some alternatives:  "🗎""🗏"
+local pre_bin = "🖾 "  -- right now we only have distinction between binary and text-files - i dont like the symbol but did not find better
 
 -- the filetree
 local filetree = {
@@ -479,9 +480,9 @@ function print_folder(folder, depth)
 		-- check if actdir is ignored/hidden - if ignored/hidden and option is set then dont bother
 		if (not actdir.ignored or show_ignored) and (not actdir.hidden or show_hidden) then 			
 			-- we pretend directorys with a + if its closed, else with a - 
-			local pre = "+"
-			if actdir.expanded then 
-				pre = "-"	
+			local pre = pre_dir 
+			if actdir.expanded then 				
+				pre = pre_dir_opened
 			end
 			-- we put a little space in front, depending on the depth in the tree
 			local space = string.rep(" ", depth*2)
@@ -493,7 +494,7 @@ function print_folder(folder, depth)
 			if actdir.changed then begin = pre_changed end
 			if actdir.ignored then begin = pre_ignored end
 			-- form a line for the directory entry
-			local line = begin .. space .. pre_dir .. pre .. foldername 
+			local line = begin .. space .. pre .. foldername 
 			-- print it 
 			print_line(print_line_nr, line)
 			-- save acces to directory in line-nr array to get access later via buffer.y
@@ -518,7 +519,16 @@ function print_folder(folder, depth)
 		if (not actfile.ignored or show_ignored) and (not actfile.hidden or show_hidden) and (not allfiles[actfile.fullpath].binary or show_binarys) then 
 			-- put indent space in front to mark its parent
 			local space = string.rep(" ", depth*2)
-			if actfile.parent.name ~= "root" then space = space .. pre_link end
+			if allfiles[actfile.fullpath] and allfiles[actfile.fullpath].text then 
+				space = space .. pre_text -- "🗎"
+			else
+				-- local ending = string.sub(actfile.fullpath,-3)
+				-- local pix = {png=true, jpg=true, gif=true}
+				--if pix[ending] then 
+				space = space .. pre_bin --"🖾 " 
+				
+			end
+			if actfile.parent.name ~= "root" then space = pre_link .. space end
 			-- put begin in front
 			local begin = " "
 			if actfile.changed then begin = pre_changed end
@@ -932,10 +942,12 @@ function init()
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
+	config.RegisterCommonOption("repfiles", "show_filter_block", true)
 	-- config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
 	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
 	show_hidden = config.GetGlobalOption("repfiles.show_hidden")
+	show_filterblock = config.GetGlobalOption("repfiles.show_filter_block")
 	config.TryBindKey("Ctrl-r", "lua:repfiles.start", false)
 	-- config.TryBindKey("MouseLeft", "lua:repfiles.mouseclick", false)
 end

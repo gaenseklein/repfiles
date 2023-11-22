@@ -28,6 +28,7 @@ for now go to your micro plugin directory and git clone this repository. for exa
 - filter hidden files and folders
 - filter binary files
 - add new files/directorys 
+- duplicate files
 - move with arrow-keys inside filetree
 
 ![](files/screenshot.png)
