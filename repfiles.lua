@@ -26,7 +26,7 @@ local pre_new = "☆"
 local pre_ignored = "⌂"
 -- just for the beauty of it
 local pre_file = " "
-local pre_link = "⤷" -- link from "parent folder" to visualise relationship
+local pre_link = " ⤷" -- link from "parent folder" to visualise relationship
 local pre_text = "🗎" --  distinguish between binary and text files- some alternatives:  "🗎""🗏"
 local pre_bin = "🖾 "  -- right now we only have distinction between binary and text-files - i dont like the symbol but did not find better
 
@@ -197,7 +197,7 @@ function respect_git_diff()
 	local startpos = 1
 	local endpos = string.find(gitdiff, '\n',startpos)
 	local count = 0
-	while endpos ~= nil and count < 100 do
+	while endpos ~= nil and count < 1000 do
 		local line = string.sub(gitdiff, startpos, endpos-1)
 		local ending= string.sub(line,-1)
 		local isfile = true
@@ -302,7 +302,7 @@ function add_files_to_tree(path)
 	local startpos = 1
 	local endpos = string.find(all_files,'\n',startpos)
 	local counter = 0
-	while endpos ~= nil and counter < 200 do 
+	while endpos ~= nil and counter < 1000 do 
 		local fpath = string.sub(all_files, startpos+2, endpos-1)		
 		--micro.TermError(fpath, counter, 'what is going on?' .. startpos ..':'..endpos)
 		parse_path(fpath, true)
@@ -320,7 +320,7 @@ function add_directorys_to_tree(path)
 	local startpos = 1 --string.find(all_dirs, '\n./')
 	local endpos = string.find(all_dirs, '\n', startpos)
 	local counter = 0
-	while endpos ~= nil and counter < 100 do
+	while endpos ~= nil and counter < 1000 do
 		local dpath = string.sub(all_dirs, startpos+2, endpos-1)
 		--micro.TermError(dpath, counter, 'what is going on?' .. startpos ..':'..endpos .. ' length '.. #dpath)
 		if dpath ~= nil and #dpath > 0 then 
@@ -976,7 +976,7 @@ function switch_to_view(view)
 	if view == nil then return end
 	local actview = micro.CurPane()
 	local count = 0
-	while view ~= micro.CurPane() and count < 10 do 
+	while view ~= micro.CurPane() and count < 100 do 
 		micro.CurPane():NextSplit()
 		count = count + 1
 		if count > 1 and actview == micro.CurPane() then break end -- we have circled the loop without finding the target view 

@@ -21,6 +21,10 @@ for now go to your micro plugin directory and git clone this repository. for exa
  git clone https://github.com/gaenseklein/repfiles
 ```
 
+on some machines you have to install a font to get utf8-icons displayed correctly. 
+if you cant do that you can change the icons in repfiles.lua. afterwards you 
+have to also alter syntax.yaml to reflect the new icons of your choice. 
+
 ## features
 - simple filemanager to browse and open files
 - reflects git-status if started in working git-repository
