@@ -6,7 +6,7 @@ detect:
 rules:
     - preproc.shebang: ".*🗀 .*"
     - preproc: ".*🗁 .*" 
-    - preproc: "🖾 .*"
+    - comment: "(📽|🎛|♪|🖼||).*"
     - diff-added: "^☆.*" 
     - diff-modified: "^★.*"
 #    - todo: "^★.*"

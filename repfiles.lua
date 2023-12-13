@@ -6,6 +6,10 @@ local shell = import("micro/shell")
 local buffer = import("micro/buffer")
 local eventhandler = import("micro/event")
 
+-- import for filefonts like nerdfonts
+local filefonts = dofile(config.ConfigDir .. '/plug/repfiles/icon.lua')
+
+local filefonts_active = false
 -- internal vars we need
 local inside_git = false
 -- local gitignore = "" -- we dont need it, we use git status --porcelain instead
@@ -27,8 +31,8 @@ local pre_ignored = "⌂"
 -- just for the beauty of it
 local pre_file = " "
 local pre_link = " ⤷" -- link from "parent folder" to visualise relationship
-local pre_text = "🗎" --  distinguish between binary and text files- some alternatives:  "🗎""🗏"
-local pre_bin = "🖾 "  -- right now we only have distinction between binary and text-files - i dont like the symbol but did not find better
+local pre_text = "🗎 " --  distinguish between binary and text files- some alternatives:  "🗎""🗏"
+local pre_bin =  " "  -- right now we only have distinction between binary and text-files - i dont like the symbol but did not find better
 
 -- the filetree
 local filetree = {
@@ -437,8 +441,19 @@ local function build_status_block(linenr)
 	
 	return res
 end
+-- ~~~~~~~~~~~~~~~~~~~~~
+-- display
+-- ~~~~~~~~~~~~~~~~~~~~~
 
--- display the tree:
+-- filefonts support for extra fonts like nerdfonts
+-- lets users import extra fonts per filepath
+
+function filefont_icon(path, is_text)
+	if not filefonts_active then return "" end
+	local iconstring = filefonts.GetIcon(path, is_text)
+	-- consoleLog({path = path, icon = iconstring},'filefont_icon')
+	return iconstring
+end
 
 local print_line_nr = 1 --line in which to print
 -- display the tree
@@ -519,7 +534,15 @@ function print_folder(folder, depth)
 		if (not actfile.ignored or show_ignored) and (not actfile.hidden or show_hidden) and (not allfiles[actfile.fullpath].binary or show_binarys) then 
 			-- put indent space in front to mark its parent
 			local space = string.rep(" ", depth*2)
-			if allfiles[actfile.fullpath] and allfiles[actfile.fullpath].text then 
+			local pre_icon = ""
+			local is_text = (allfiles[actfile.fullpath] and allfiles[actfile.fullpath].text)
+			if filefonts_active then 
+				pre_icon = filefont_icon(actfile.fullpath, is_text)				
+			end	
+			if pre_icon ~= "" then
+				space = space .. pre_icon -- "🗎"
+			-- elseif allfiles[actfile.fullpath] and allfiles[actfile.fullpath].text then 
+			elseif is_text then 
 				space = space .. pre_text -- "🗎"
 			else
 				-- local ending = string.sub(actfile.fullpath,-3)
@@ -935,6 +958,13 @@ function start(bp, args)
 	end
 end
 
+local function init_alternate_icons()
+	if not filefonts_active then return end
+	local icons = filefonts.Icons()
+	if icons.dir then pre_dir = icons.dir end
+	if icons.dir_open then pre_dir_opened = icons.dir_open end	
+end
+
 function init()
 	local test_git = shell.RunCommand('git rev-parse --is-inside-work-tree')
 	inside_git = (string.sub(test_git,1,4) == 'true')
@@ -946,13 +976,17 @@ function init()
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
 	config.RegisterCommonOption("repfiles", "show_filter_block", true)
+	config.RegisterCommonOption("repfiles", "filefonts", true)
 	-- config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
 	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
 	show_hidden = config.GetGlobalOption("repfiles.show_hidden")
 	show_filterblock = config.GetGlobalOption("repfiles.show_filter_block")
+	filefonts_active = config.GetGlobalOption("repfiles.filefonts")
+	-- consoleLog({filefonts_active})
 	config.TryBindKey("Ctrl-r", "lua:repfiles.start", false)
 	-- config.TryBindKey("MouseLeft", "lua:repfiles.mouseclick", false)
+	init_alternate_icons()
 end
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
