@@ -42,5 +42,21 @@ some options to alter the default behaviour of repfiles:
 - show_hidden: defaults the hidden files filter - default true
 - auto_close_after_open: closes the filemanager after opening file - default true
 - show_filter_block: shows filter configuration under fileview - default true
+- filefonts: use different icons for files (like for mp3, jpg...)
+
 
 to change this options you can either edit your settings.json or from inside micro-command-line - for example `> set repfiles.show_ignored false` to not show ignored files by git as default
+
+## theming
+
+if you want different icons you can use icon.lua to either change some icons or write your own 
+icon-plugin. if you do so the filefonts-option has to be active. 
+
+### every icon.lua returns two functions:
+- Icons() -> returns a table with {name:icon}
+- GetIcon(path, is_text) -> returns the icon fit for the path given. the is_text boolean is set to true to files known to be text-files
+
+as an example you can use the filemanager2-icon.lua in the same archive to use nerdfonts-icons. 
+just rename icon.lua to default.icon.lua and filemanager2-icon.lua to icon.lua. 
+
+if you change icons for dir, dir_open or for binary files like images etc. you should also change them in syntax.yaml to reflect that change
