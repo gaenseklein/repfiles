@@ -4,9 +4,9 @@ detect:
     filename: "^pfileview$"
 
 rules:
-    - preproc.shebang: ".*🗀 .*"
-    - preproc: ".*🗁 .*" 
-    - comment: "(📽|🎛|♪|🖼||).*"
+    - preproc.shebang: ".*(🗀|) .*"
+    - preproc: ".*(🗁|) .*" 
+    - comment: "(📽|🎛|♪|🖼|||).*"
     - diff-added: "^☆.*" 
     - diff-modified: "^★.*"
 #    - todo: "^★.*"
