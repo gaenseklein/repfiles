@@ -299,7 +299,7 @@ end
 -- checks for files in a path (has to be a dir)
 -- inserting them into filetree
 function add_files_to_tree(path)
-	local cmd = 'find ./' .. path .. ' -maxdepth 1 -type f'
+	local cmd = 'find "./' .. path .. '" -maxdepth 1 -type f'
 	local all_files = shell.RunCommand(cmd)
 	if all_files == nil or #all_files < 3 then return nil end
 	--micro.TermError(cmd,#all_files,all_files)
@@ -319,7 +319,9 @@ end
 -- checks for subdirs in a path (has to be a dir)
 -- inserting them into filetree
 function add_directorys_to_tree(path)
-	local all_dirs = shell.RunCommand('find ./'.. path ..' -maxdepth 1 -type d')	
+	local cmd = 'find "./'.. path ..'" -maxdepth 1 -type d'
+	local all_dirs = shell.RunCommand(cmd)	
+	-- consoleLog({cmd, all_dirs},"",3)
 	if all_dirs == nil or #all_dirs < 5 then return nil end
 	local startpos = 1 --string.find(all_dirs, '\n./')
 	local endpos = string.find(all_dirs, '\n', startpos)
