@@ -1010,7 +1010,7 @@ local function init_alternate_icons()
 	local syntax_file = create_syntax_yaml(icons)
 	-- consoleLog({file=syntax_file})
 	config.AddRuntimeFileFromMemory(config.RTSyntax, "repfiles.yaml", syntax_file)
-	config.Reload()
+	-- config.Reload()
 end
 
 function init()
@@ -1025,7 +1025,7 @@ function init()
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
 	config.RegisterCommonOption("repfiles", "show_filter_block", true)
 	config.RegisterCommonOption("repfiles", "filefonts", true)
-	config.RegisterCommonOption("repfiles", "nerdfonts", true)
+	config.RegisterCommonOption("repfiles", "nerdfonts", false)
 	
 	-- config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	

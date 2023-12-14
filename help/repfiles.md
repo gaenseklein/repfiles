@@ -42,10 +42,14 @@ some options to alter the default behaviour of repfiles:
 - show_hidden: defaults the hidden files filter - default true
 - auto_close_after_open: closes the filemanager after opening file - default true
 - show_filter_block: shows filter configuration under fileview - default true
-- filefonts: use different icons for files (like for mp3, jpg...)
-
+- filefonts: use different icons for files (like for mp3, jpg...) - default true
+- nerdfonts: use nerdfonts¹ icons to differentiate files. only active with filefonts true. default false
 
 to change this options you can either edit your settings.json or from inside micro-command-line - for example `> set repfiles.show_ignored false` to not show ignored files by git as default
+
+### ¹ nerdfonts
+to make use of nerdfonts you have to manualy install a [nerd font](https://www.nerdfonts.com/) or compatible font. 
+if nerdfonts is active it uses the filemanager2-icon.lua to get the right icon for the file
 
 ## theming
 
@@ -56,7 +60,6 @@ icon-plugin. if you do so the filefonts-option has to be active.
 - Icons() -> returns a table with {name:icon}
 - GetIcon(path, is_text) -> returns the icon fit for the path given. the is_text boolean is set to true to files known to be text-files
 
-as an example you can use the filemanager2-icon.lua in the same archive to use nerdfonts-icons. 
-just rename icon.lua to default.icon.lua and filemanager2-icon.lua to icon.lua. 
-
-if you change icons for dir, dir_open or for binary files like images etc. you should also change them in syntax.yaml to reflect that change
+note: if repfiles.nerdfonts is true it will use filemanager2-icon.lua instead of icon.lua
+filemanager2-icon.lua is a script taken from [filemanager2 plugin](https://codeberg.org/micro-plugins/filemanager2)
+to use nerdfont-icons. therefore it needs a nerd font installed. 
