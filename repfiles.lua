@@ -502,9 +502,14 @@ function print_folder(folder, depth)
 				pre = pre_dir_opened
 			end
 			-- we put a little space in front, depending on the depth in the tree
-			local space = string.rep(" ", depth*2)
+			local space = string.rep(" ", depth)
 			-- we put pre_link in front, but not for files/dirs in root
-			if actdir.parent.name ~= "root" then space = space .. pre_link end
+			
+			if actdir.parent.name ~= "root" then --space = space .. pre_link end
+				space = space .. pre_link .. space
+			else
+				space = space .. space
+			end
 			-- check if we have to put changed in front
 			local begin = " "
 			if actdir.isnew then begin = pre_new end
@@ -535,7 +540,12 @@ function print_folder(folder, depth)
 		--check if we have to print file - if its ignored/hidden and option is set we dont bother
 		if (not actfile.ignored or show_ignored) and (not actfile.hidden or show_hidden) and (not allfiles[actfile.fullpath].binary or show_binarys) then 
 			-- put indent space in front to mark its parent
-			local space = string.rep(" ", depth*2)
+			local space = string.rep(" ", depth)
+			if actfile.parent.name ~= "root" then 
+				space = space .. pre_link .. space
+			else
+				space = space .. space
+			end
 			local pre_icon = ""
 			local is_text = (allfiles[actfile.fullpath] and allfiles[actfile.fullpath].text)
 			if filefonts_active then 
@@ -553,7 +563,7 @@ function print_folder(folder, depth)
 				space = space .. pre_bin --"🖾 " 
 				
 			end
-			if actfile.parent.name ~= "root" then space = pre_link .. space end
+	
 			-- put begin in front
 			local begin = " "
 			if actfile.changed then begin = pre_changed end
