@@ -1126,6 +1126,9 @@ function preQuit(view)
 		-- Don't actually "quit", otherwise it closes everything without saving for some reason
 		return false
 	end
+	if view == target_pane then 
+		target_pane = nil
+	end
 end
 -- Close all
 function preQuitAll(view)
