@@ -1,4 +1,4 @@
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 local micro = import("micro")
 local config = import("micro/config")
@@ -960,11 +960,57 @@ function start(bp, args)
 	end
 end
 
+local function init_file_comment_line(icons)
+	local all_icons = pre_bin
+	local check_for_icons = {'image','audio','video','binary','bin','mp3','pdf','iso','dump'}
+	for i=1,#check_for_icons do 
+		if icons[check_for_icons[i]] then 
+			all_icons = all_icons .. '|'..icons[check_for_icons[i]]
+		end
+	end
+	-- local check_for_extensions = {'jpg',''}
+	local line = '    - comment: "(' .. all_icons .. ').*"'
+	return line
+end
+
+local function create_syntax_yaml(icons)	
+	local dir_line = '    - preproc: ".*'..pre_dir..'.*"'
+	local dir_open_line = '    - preproc: ".*'..pre_dir_opened..'.*" '
+	local file_comment_line = init_file_comment_line(icons)
+	local result = [[filetype: projectfiledisplay
+
+detect:
+    filename: "^pfileview$"
+
+rules:		
+]]
+	result = result .. dir_line .. '\n'
+	result = result .. dir_open_line .. '\n'
+	result = result .. file_comment_line .. '\n'
+	result = result .. [[
+    - diff-added: "^☆.*" 
+    - diff-modified: "^★.*"
+    - comment: "^⌂.*"
+    - preproc: "⤷"
+    - diff-added: "true"
+    - error: "false"
+]]
+	result = result .. '    - constant: "\\\\[[^]]+\\\\]"'
+	return result    
+end
+
 local function init_alternate_icons()
-	if not filefonts_active then return end
+	-- if not filefonts_active then return end
+	if config.GetGlobalOption("repfiles.nerdfonts") then 
+			filefonts = dofile(config.ConfigDir .. '/plug/repfiles/filemanager2-icon.lua')			
+	end
 	local icons = filefonts.Icons()
 	if icons.dir then pre_dir = icons.dir end
 	if icons.dir_open then pre_dir_opened = icons.dir_open end	
+	local syntax_file = create_syntax_yaml(icons)
+	-- consoleLog({file=syntax_file})
+	config.AddRuntimeFileFromMemory(config.RTSyntax, "repfiles.yaml", syntax_file)
+	config.Reload()
 end
 
 function init()
@@ -972,13 +1018,15 @@ function init()
 	inside_git = (string.sub(test_git,1,4) == 'true')
 	--micro.TermError("inside_git",0,'>>'..test_git..'<<')
 	config.MakeCommand("repfiles", start, config.NoComplete)	
-	config.AddRuntimeFile("repfiles", config.RTSyntax, "syntax.yaml")
+	
 	config.AddRuntimeFile("repfiles", config.RTHelp, "help/repfiles.md")
 	config.RegisterCommonOption("repfiles", "show_ignored", true)
 	config.RegisterCommonOption("repfiles", "show_hidden", true)
 	config.RegisterCommonOption("repfiles", "auto_close_after_open", true)
 	config.RegisterCommonOption("repfiles", "show_filter_block", true)
 	config.RegisterCommonOption("repfiles", "filefonts", true)
+	config.RegisterCommonOption("repfiles", "nerdfonts", true)
+	
 	-- config.RegisterCommonOption("repfiles", "open_new_file_after_creation", true)
 	show_ignored = config.GetGlobalOption("repfiles.show_ignored")	
 	auto_close_after_open = config.GetGlobalOption("repfiles.auto_close_after_open")	
@@ -988,7 +1036,11 @@ function init()
 	-- consoleLog({filefonts_active})
 	config.TryBindKey("Ctrl-r", "lua:repfiles.start", false)
 	-- config.TryBindKey("MouseLeft", "lua:repfiles.mouseclick", false)
-	init_alternate_icons()
+	if filefonts_active then 
+		init_alternate_icons()
+	else
+		config.AddRuntimeFile("repfiles", config.RTSyntax, "syntax.yaml")
+	end
 end
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
